@@ -13,7 +13,7 @@ This is a fork of the pyetrade project which adds the ability to automatically l
 v1 API
 Authorization API - ALL
 Accounts
-* list accounts
+* List Accounts
 
 Authorization API - ALL
 Order API -
@@ -23,7 +23,7 @@ Order API -
 
 Market API -
 * Look Up Product
-* optionchain
+* Option Chain
 * Get Quote
 
 ## Install
