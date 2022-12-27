@@ -101,7 +101,7 @@ class ETradeOAuth(object):
         driver = webdriver.Edge(service=service, options=options)
         driver.get(formated_auth_url)
 
-        driver.add_cookie(swh_cookie)
+        driver.add_cookie(self.swh_cookie)
 
         user_id = driver.find_element(By.NAME, 'USER')
         user_id.send_keys(self.web_username)
