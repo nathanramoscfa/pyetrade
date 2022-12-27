@@ -1,11 +1,5 @@
 """Authorization - ETrade Authorization API Calls
 
-   TODO:
-    * Lint this messy code
-    * Catch events
-
-    """
-
 import logging
 from requests_oauthlib import OAuth1Session
 
@@ -20,16 +14,25 @@ class ETradeOAuth(object):
        :type client_key: str, required
        :param client_secret: Client secret provided by Etrade
        :type client_secret: str, required
+       :param web_username: Client web username for Etrade
+       :type web_username: str, required
+       :param web_password: Client web password for Etrade
+       :type web_password: str, required
+       :param swhcookie: Client cookie. Must request from E-Trade.
+       :type swhcookie: dict, required
        :param callback_url: Callback URL passed to OAuth mod, defaults to "oob"
        :type callback_url: str, optional
        :EtradeRef: https://apisb.etrade.com/docs/api/authorization/request_token.html
 
     """
 
-    def __init__(self, consumer_key, consumer_secret, callback_url="oob"):
+    def __init__(self, consumer_key, consumer_secret, web_username, web_password, swhcookie, callback_url="oob"):
 
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
+        self.web_username = web_username
+        self.web_password = web_password
+        self.swhcookie = swhcookie
         self.base_url_prod = r"https://api.etrade.com"
         self.base_url_dev = r"https://apisb.etrade.com"
         self.req_token_url = r"https://api.etrade.com/oauth/request_token"
@@ -73,6 +76,47 @@ class ETradeOAuth(object):
         LOGGER.debug(formated_auth_url)
 
         return formated_auth_url
+        
+        formated_auth_url = self.get_request_token()
+
+    def get_verification_code(self):
+        """:description: Obtains verification code for signing into E-Trade.
+
+           :param None: Takes no parameters
+           :return: Verification code (Used for two-factor authentication)
+           :rtype: str
+
+        """
+
+        formated_auth_url = self.get_request_token()
+
+        # Automate the login process
+        service = Service(executable_path="msedgedriver.exe")
+        driver = webdriver.Edge(service=service)
+        driver.get(formated_auth_url)
+
+        driver.add_cookie(swhcookie)
+
+        user_id = driver.find_element(By.NAME, 'USER')
+        user_id.send_keys(self.web_username)
+
+        password = driver.find_element(By.NAME, 'PASSWORD')
+        password.send_keys(self.web_password)
+
+        logon = driver.find_element(By.ID, 'logon_button')
+        logon.click()
+
+        driver.implicitly_wait(5)
+
+        accept = driver.find_element(By.NAME, "submit")
+        accept.click()
+
+        verifier = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
+        verifier = verifier.get_attribute('value')
+
+        driver.close()
+
+        return verifier
 
     def get_access_token(self, verifier):
         """:description: Obtains access token. Requires token URL from :class:`get_request_token`
