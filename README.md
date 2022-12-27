@@ -85,14 +85,14 @@ print(accounts.list_accounts())
 * Fork pyetrade
 * Development Setup:
 ```
-    make init
-    make devel
+make init
+make devel
 ```
 or
 ```
-    pip install -r requirements.txt
-    pip install -r requirements_dev.txt
-    pip install -e .
+pip install -r requirements.txt
+pip install -r requirements_dev.txt
+pip install -e .
 ```
 * Lint
 ```
