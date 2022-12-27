@@ -42,8 +42,7 @@ consumer_secret = "<SECRET_KEY>"
 web_username = "<ETrade Username>"
 web_password = "<ETrade Password>"
 
-# Must obtain from ETrade Customer Service Technical
-# Support Desk.
+# Must obtain from ETrade Customer Service Technical Support Desk.
 swh_cookie = {
     'name': '<COOKIE_NAME>',
     'value': '<COOKE_VALUE>',
