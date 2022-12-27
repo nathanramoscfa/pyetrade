@@ -59,7 +59,7 @@ print(tokens)
 
 Once logged in, perform actions such as listing accounts:
 
-```
+```python
 import pyetrade
 
 consumer_key = "<CONSUMER_KEY>"
