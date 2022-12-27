@@ -58,7 +58,7 @@ tokens = oauth.get_access_token(verifier_code)
 print(tokens)
 ```
 
-Once logged in, perform actions such as listing accounts:
+And then on the example code:
 
 ```python
 import pyetrade
