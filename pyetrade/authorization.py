@@ -1,4 +1,4 @@
-"""Authorization - ETrade Authorization API Calls"""
+"""Authorization - ETrade Authorization API Calls"""python
 
 import logging
 from requests_oauthlib import OAuth1Session
@@ -38,7 +38,7 @@ class ETradeOAuth(object):
         self.consumer_secret = consumer_secret
         self.web_username = web_username
         self.web_password = web_password
-        self.swhcookie = swh_cookie
+        self.swh_cookie = swh_cookie
         self.base_url_prod = r"https://api.etrade.com"
         self.base_url_dev = r"https://apisb.etrade.com"
         self.req_token_url = r"https://api.etrade.com/oauth/request_token"
