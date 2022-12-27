@@ -60,6 +60,13 @@ print(tokens)
 Once logged in, perform actions such as listing accounts:
 
 ```
+import pyetrade
+
+consumer_key = "<CONSUMER_KEY>"
+consumer_secret = "<SECRET_KEY>"
+tokens = {'oauth_token': '<TOKEN FROM THE SCRIPT ABOVE>',
+          'oauth_token_secret': '<TOKEN FROM THE SCRIPT ABOVE>'}
+
 accounts = pyetrade.ETradeAccounts(
     consumer_key,
     consumer_secret,
