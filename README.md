@@ -46,7 +46,7 @@ web_password = "<ETrade Password>"
 # Support Desk.
 swh_cookie = {
     'name': '<COOKIE_NAME>',
-    'value': 'COOKE_VALUE',
+    'value': '<COOKE_VALUE>',
     'domain': '.etrade.com',
     'secure': True,
     'httpOnly': True
