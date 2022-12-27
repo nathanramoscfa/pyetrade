@@ -28,7 +28,7 @@ Market API -
 
 ## Install
 ```
-git clone https://github.com/jessecooper/pyetrade.git
+https://github.com/nathanramoscfa/pyetrade.git
 ```
 ## Example Usage
 
