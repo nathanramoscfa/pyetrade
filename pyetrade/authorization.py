@@ -3,6 +3,12 @@
 import logging
 from requests_oauthlib import OAuth1Session
 
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
+from selenium.webdriver.common.by import By
+
 # Set up logging
 LOGGER = logging.getLogger(__name__)
 
@@ -76,8 +82,6 @@ class ETradeOAuth(object):
         LOGGER.debug(formated_auth_url)
 
         return formated_auth_url
-        
-        formated_auth_url = self.get_request_token()
 
     def get_verification_code(self):
         """:description: Obtains verification code for signing into E-Trade.
@@ -91,8 +95,10 @@ class ETradeOAuth(object):
         formated_auth_url = self.get_request_token()
 
         # Automate the login process
+        options = Options()
+        options.add_argument("headless")
         service = Service(executable_path="msedgedriver.exe")
-        driver = webdriver.Edge(service=service)
+        driver = webdriver.Edge(service=service, options=options)
         driver.get(formated_auth_url)
 
         driver.add_cookie(swhcookie)
