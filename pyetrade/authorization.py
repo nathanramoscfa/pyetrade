@@ -24,21 +24,21 @@ class ETradeOAuth(object):
        :type web_username: str, required
        :param web_password: Client web password for Etrade
        :type web_password: str, required
-       :param swhcookie: Client cookie. Must request from E-Trade.
-       :type swhcookie: dict, required
+       :param swh_cookie: Client cookie. Must request from E-Trade.
+       :type swh_cookie: dict, required
        :param callback_url: Callback URL passed to OAuth mod, defaults to "oob"
        :type callback_url: str, optional
        :EtradeRef: https://apisb.etrade.com/docs/api/authorization/request_token.html
 
     """
 
-    def __init__(self, consumer_key, consumer_secret, web_username, web_password, swhcookie, callback_url="oob"):
+    def __init__(self, consumer_key, consumer_secret, web_username, web_password, swh_cookie, callback_url="oob"):
 
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.web_username = web_username
         self.web_password = web_password
-        self.swhcookie = swhcookie
+        self.swhcookie = swh_cookie
         self.base_url_prod = r"https://api.etrade.com"
         self.base_url_dev = r"https://apisb.etrade.com"
         self.req_token_url = r"https://api.etrade.com/oauth/request_token"
@@ -101,7 +101,7 @@ class ETradeOAuth(object):
         driver = webdriver.Edge(service=service, options=options)
         driver.get(formated_auth_url)
 
-        driver.add_cookie(swhcookie)
+        driver.add_cookie(swh_cookie)
 
         user_id = driver.find_element(By.NAME, 'USER')
         user_id.send_keys(self.web_username)
