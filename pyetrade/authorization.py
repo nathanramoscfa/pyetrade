@@ -1,4 +1,4 @@
-"""Authorization - ETrade Authorization API Calls
+"""Authorization - ETrade Authorization API Calls"""
 
 import logging
 from requests_oauthlib import OAuth1Session
