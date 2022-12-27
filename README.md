@@ -7,6 +7,8 @@ Python E-Trade API Wrapper
 [![Build Status](https://github.com/jessecooper/pyetrade/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/jessecooper/pyetrade/actions/workflows/build.yml/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/jessecooper/pyetrade/branch/master/graph/badge.svg)](https://codecov.io/gh/jessecooper/pyetrade)
 
+This is a fork of the pyetrade project which adds the ability to automatically log in to an E-Trade account. The original repository left it up to the user to figure out how to automatically log in to their E-Trade account and required the user to manually log in to their account through the browser. This is obviously a problem if you are trying to deploy an automated trading program that can log in by itself. This fork provides a solution to that conundrum. However, as is mentioned in [#9](https://github.com/jessecooper/pyetrade/issues/9) and [#46](https://github.com/jessecooper/pyetrade/issues/46), automating login functions has security and possible legal risks. You agree to bear these risks if you use any code from this repository. Keep your login credentials secure and follow cybersecurity best practices. 
+
 ## Completed
 v1 API
 Authorization API - ALL
@@ -26,40 +28,39 @@ Market API -
 
 ## Install
 ```
-pip install pyetrade
-- or -
 git clone https://github.com/jessecooper/pyetrade.git
-cd pyetrade
-sudo make init
-sudo make install
 ```
 ## Example Usage
 
-To create the OAuth tokens:
+To automatically log into ETrade:
 ```python
 import pyetrade
 
 consumer_key = "<CONSUMER_KEY>"
 consumer_secret = "<SECRET_KEY>"
 
-oauth = pyetrade.ETradeOAuth(consumer_key, consumer_secret)
-print(oauth.get_request_token())  # Use the printed URL
+web_username = "<ETrade Username>"
+web_password = "<ETrade Password>"
 
-verifier_code = input("Enter verification code: ")
+# Must obtain from ETrade Customer Service Technical
+# Support Desk.
+swh_cookie = {
+    'name': '<COOKIE_NAME>',
+    'value': 'COOKE_VALUE',
+    'domain': '.etrade.com',
+    'secure': True,
+    'httpOnly': True
+}
+
+oauth = pyetrade.ETradeOAuth(consumer_key, consumer_secret, web_username, web_password, swh_cookie)
+verifier_code = oauth.get_verification_code()
 tokens = oauth.get_access_token(verifier_code)
 print(tokens)
 ```
 
-And then on the example code:
+Once logged in, perform actions such as listing accounts:
 
-```python
-import pyetrade
-
-consumer_key = "<CONSUMER_KEY>"
-consumer_secret = "<SECRET_KEY>"
-tokens = {'oauth_token': '<TOKEN FROM THE SCRIPT ABOVE>',
-          'oauth_token_secret': '<TOKEN FROM THE SCRIPT ABOVE>'}
-
+```
 accounts = pyetrade.ETradeAccounts(
     consumer_key,
     consumer_secret,
@@ -69,6 +70,7 @@ accounts = pyetrade.ETradeAccounts(
 
 print(accounts.list_accounts())
 ```
+
 ## Documentation
 [PyEtrade Documentation](https://pyetrade.readthedocs.io/en/latest/)
 ## Contribute to pyetrade
