@@ -78,9 +78,9 @@ print(accounts.list_accounts())
 ```
 
 ## Documentation
-[PyEtrade Documentation](https://pyetrade.readthedocs.io/en/latest/)
+[PyEtrade Documentation](https://pyetrade.readthedocs.io/en/latest/index.html)
 ## Contribute to pyetrade
-* [ETrade API Docs](https://developer.etrade.com/ctnt/dev-portal/getArticleByCategory?category=Documentation)
+* [ETrade API Docs](https://developer.etrade.com/home)
 * Fork pyetrade
 * Development Setup:
 ```
