@@ -38,7 +38,7 @@ To check the version of the Microsoft Edge browser you have:
 1) Open your Microsoft Edge browser, select "Settings and more" at the top of the window, and then select "Settings". 
 2) Scroll down and select "About Microsoft Edge". The version will be located towards the top. The Selenium WebDriver included in this project's root directory uses Microsoft Edge browser Version 108.0.1462.54 (Official build) (64-bit), and can only control this version of the browser. 
 3) Go to Microsoft's official [webdriver page](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/). Download the Stable Channel version that corresponds to your version of the Microsoft Edge browser. From step 2, the version I would need to download is Version 108.0.1462.54: x64. This might be different for you so ensure you download the right version. 
-4) Extract the "msedgedriver.exe" to the folder where your project is located. Ensure that the [executable path of "msedgedriver.exe"](https://github.com/nathanramoscfa/pyetrade/blob/master/pyetrade/authorization.py#L100) is correct. 
+4) Extract the "msedgedriver.exe" to the folder where your project is located. Ensure that the [executable path] of "msedgedriver.exe"(https://github.com/nathanramoscfa/pyetrade/blob/master/pyetrade/authorization.py#L100) is correct. 
 
 If you want to use another browser than Microsoft Edge, then you will have to repeat these steps for that browser. 
 
