@@ -8,6 +8,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 # Set up logging
 LOGGER = logging.getLogger(__name__)
@@ -24,21 +25,21 @@ class ETradeOAuth(object):
        :type web_username: str, required
        :param web_password: Client web password for Etrade
        :type web_password: str, required
-       :param swh_cookie: Client cookie. Must request from E-Trade.
-       :type swh_cookie: dict, required
+       :param etrade_cookie: Client cookie. Must request from E-Trade.
+       :type etrade_cookie: dict, required
        :param callback_url: Callback URL passed to OAuth mod, defaults to "oob"
        :type callback_url: str, optional
        :EtradeRef: https://apisb.etrade.com/docs/api/authorization/request_token.html
 
     """
 
-    def __init__(self, consumer_key, consumer_secret, web_username, web_password, swh_cookie, callback_url="oob"):
+    def __init__(self, consumer_key, consumer_secret, web_username, web_password, etrade_cookie, callback_url="oob"):
 
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.web_username = web_username
         self.web_password = web_password
-        self.swh_cookie = swh_cookie
+        self.etrade_cookie = etrade_cookie
         self.base_url_prod = r"https://api.etrade.com"
         self.base_url_dev = r"https://apisb.etrade.com"
         self.req_token_url = r"https://api.etrade.com/oauth/request_token"
@@ -83,10 +84,15 @@ class ETradeOAuth(object):
 
         return formated_auth_url
 
-    def get_verification_code(self):
+    def get_verification_code(self, dev, headless=False, browser='chrome'):
         """:description: Obtains verification code for signing into E-Trade.
 
-           :param None: Takes no parameters
+           :param dev: Option to use development API, defaults to False
+           :type dev: bool, optional
+           :param headless: Option to run browser in headless mode, defaults to False
+           :type headless: bool, optional
+           :param browser: Browser to use for automation, defaults to 'chrome'
+           :type browser: str, optional
            :return: Verification code (Used for two-factor authentication)
            :rtype: str
 
@@ -95,13 +101,23 @@ class ETradeOAuth(object):
         formated_auth_url = self.get_request_token()
 
         # Automate the login process
-        options = Options()
-        options.add_argument("headless")
-        service = Service(executable_path="msedgedriver.exe")
-        driver = webdriver.Edge(service=service, options=options)
+        if browser == 'chrome':
+            options = webdriver.ChromeOptions()
+            if headless:
+                options.headless = True
+            service = Service(executable_path='chromedriver.exe')
+            driver = webdriver.Chrome(service=service, options=options)
+
+        elif browser == 'edge':
+            options = webdriver.EdgeOptions()
+            if headless:
+                options.headless = True
+            service = Service(executable_path='msedgedriver.exe')
+            driver = webdriver.Edge(service=service, options=options)
+
         driver.get(formated_auth_url)
 
-        driver.add_cookie(self.swh_cookie)
+        driver.add_cookie(self.etrade_cookie)
 
         user_id = driver.find_element(By.NAME, 'USER')
         user_id.send_keys(self.web_username)
@@ -114,8 +130,11 @@ class ETradeOAuth(object):
 
         driver.implicitly_wait(5)
 
-        accept = driver.find_element(By.NAME, "submit")
-        accept.click()
+        try:
+            accept = driver.find_element(By.NAME, "submit")
+            accept.click()
+        except NoSuchElementException:
+            driver.close()
 
         verifier = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
         verifier = verifier.get_attribute('value')
