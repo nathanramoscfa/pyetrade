@@ -1,14 +1,13 @@
 """Authorization - ETrade Authorization API Calls"""
 
+import re
 import logging
 from requests_oauthlib import OAuth1Session
+from webdriver_manager.chrome import ChromeDriverManager
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, SessionNotCreatedException, InvalidSessionIdException
 
 # Set up logging
 LOGGER = logging.getLogger(__name__)
@@ -48,6 +47,8 @@ class ETradeOAuth(object):
         self.callback_url = callback_url
         self.access_token = None
         self.resource_owner_key = None
+        self.session = None
+        self.verifier_url = None
 
     def get_request_token(self):
         """:description: Obtains the token URL from Etrade.
@@ -84,39 +85,37 @@ class ETradeOAuth(object):
 
         return formated_auth_url
 
-    def get_verification_code(self, dev, headless=False, browser='chrome'):
+    def get_verification_code(self, dev, headless=False):
         """:description: Obtains verification code for signing into E-Trade.
 
            :param dev: Option to use development API, defaults to False
            :type dev: bool, optional
            :param headless: Option to run browser in headless mode, defaults to False
            :type headless: bool, optional
-           :param browser: Browser to use for automation, defaults to 'chrome'
-           :type browser: str, optional
            :return: Verification code (Used for two-factor authentication)
            :rtype: str
 
         """
-
         formated_auth_url = self.get_request_token()
 
         # Automate the login process
-        if browser == 'chrome':
-            options = webdriver.ChromeOptions()
-            if headless:
-                options.headless = True
-            service = Service(executable_path='chromedriver.exe')
-            driver = webdriver.Chrome(service=service, options=options)
+        options = webdriver.ChromeOptions()
+        if headless:
+            options.headless = True
 
-        elif browser == 'edge':
-            options = webdriver.EdgeOptions()
-            if headless:
-                options.headless = True
-            service = Service(executable_path='msedgedriver.exe')
-            driver = webdriver.Edge(service=service, options=options)
+        # Try initializing driver
+        try:
+            driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        except SessionNotCreatedException as e:
+            message = str(e)
+            required_version = re.search(r"only supports Chrome version ([\d\.]+)", message).group(1)
+            print(
+                f"SessionNotCreatedException occurred. "
+                f"Attempting to download ChromeDriver for version {required_version}."
+            )
+            driver = webdriver.Chrome(ChromeDriverManager(driver_version=required_version).install(), options=options)
 
         driver.get(formated_auth_url)
-
         driver.add_cookie(self.etrade_cookie)
 
         user_id = driver.find_element(By.NAME, 'USER')
@@ -136,9 +135,15 @@ class ETradeOAuth(object):
         except NoSuchElementException:
             driver.close()
 
-        verifier = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
-        verifier = verifier.get_attribute('value')
+        try:
+            verifier = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
+        except InvalidSessionIdException:
+            driver.find_element(By.CSS_SELECTOR,
+                                "#application > main > div > div > div > div > div > div > div > "
+                                "div:nth-child(3) > div > button").click()
+            verifier = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
 
+        verifier = verifier.get_attribute('value')
         driver.close()
 
         return verifier
@@ -179,7 +184,7 @@ class ETradeAccessManager(object):
     """
 
     def __init__(
-        self, client_key, client_secret, resource_owner_key, resource_owner_secret
+            self, client_key, client_secret, resource_owner_key, resource_owner_secret
     ):
         self.client_key = client_key
         self.client_secret = client_secret
