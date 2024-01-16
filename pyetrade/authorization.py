@@ -1,14 +1,15 @@
 """Authorization - ETrade Authorization API Calls"""
 
+import re
 import logging
 from requests_oauthlib import OAuth1Session
+from webdriver_manager.chrome import ChromeDriverManager
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, SessionNotCreatedException, InvalidSessionIdException
 
 # Set up logging
 LOGGER = logging.getLogger(__name__)
@@ -48,6 +49,8 @@ class ETradeOAuth(object):
         self.callback_url = callback_url
         self.access_token = None
         self.resource_owner_key = None
+        self.session = None
+        self.verifier_url = None
 
     def get_request_token(self):
         """:description: Obtains the token URL from Etrade.
@@ -84,49 +87,67 @@ class ETradeOAuth(object):
 
         return formated_auth_url
 
-    def get_verification_code(self, dev, headless=False, browser='chrome'):
+    def get_verification_code(self, dev, headless=False):
         """:description: Obtains verification code for signing into E-Trade.
 
            :param dev: Option to use development API, defaults to False
            :type dev: bool, optional
            :param headless: Option to run browser in headless mode, defaults to False
            :type headless: bool, optional
-           :param browser: Browser to use for automation, defaults to 'chrome'
-           :type browser: str, optional
            :return: Verification code (Used for two-factor authentication)
            :rtype: str
 
         """
-
         formated_auth_url = self.get_request_token()
-
-        # Automate the login process
-        if browser == 'chrome':
-            options = webdriver.ChromeOptions()
-            if headless:
-                options.headless = True
-            service = Service(executable_path='chromedriver.exe')
-            driver = webdriver.Chrome(service=service, options=options)
-
-        elif browser == 'edge':
-            options = webdriver.EdgeOptions()
-            if headless:
-                options.headless = True
-            service = Service(executable_path='msedgedriver.exe')
-            driver = webdriver.Edge(service=service, options=options)
+        driver = self.initialize_driver(headless)
 
         driver.get(formated_auth_url)
-
         driver.add_cookie(self.etrade_cookie)
+        self.login_to_site(driver)
 
-        user_id = driver.find_element(By.NAME, 'USER')
+        verifier = self.get_verifier(driver)
+        return verifier.get_attribute('value')
+
+    def initialize_driver(self, headless):
+        """:description: Initialize the web driver with specified options.
+
+           :param headless: Option to run browser in headless mode, defaults to False
+           :type headless: bool, optional
+           :return: Selenium web driver
+           :rtype: selenium.webdriver.chrome.webdriver.WebDriver
+
+        """
+        options = webdriver.ChromeOptions()
+        if headless:
+            options.add_argument("--headless")
+
+        options.add_argument("--log-level=3")  # Fatal
+        options.add_argument("--disable-logging")
+
+        try:
+            return webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        except SessionNotCreatedException as e:
+            required_version = re.search(r"only supports Chrome version ([\d\.]+)", str(e)).group(1)
+            print(
+                f"SessionNotCreatedException occurred. Attempting to download ChromeDriver for version {required_version}.")
+            return webdriver.Chrome(ChromeDriverManager(driver_version=required_version).install(), options=options)
+
+    def login_to_site(self, driver):
+        """:description: Perform login operation using the driver.
+
+           :param driver: Selenium driver object
+           :type driver: selenium.webdriver.chrome.webdriver.WebDriver
+           :return: None
+           :rtype: None
+
+        """
+        user_id = driver.find_element(By.CSS_SELECTOR, '#USER')
+        password = driver.find_element(By.CSS_SELECTOR, '#password')
+        logon_button = driver.find_element(By.CSS_SELECTOR, '#mfaLogonButton')
+
         user_id.send_keys(self.web_username)
-
-        password = driver.find_element(By.NAME, 'PASSWORD')
         password.send_keys(self.web_password)
-
-        logon = driver.find_element(By.ID, 'logon_button')
-        logon.click()
+        logon_button.click()
 
         driver.implicitly_wait(5)
 
@@ -134,14 +155,61 @@ class ETradeOAuth(object):
             accept = driver.find_element(By.NAME, "submit")
             accept.click()
         except NoSuchElementException:
-            driver.close()
+            pass
 
-        verifier = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
-        verifier = verifier.get_attribute('value')
+    def get_verifier(self, driver):
+        """:description: Obtain the verification code from the site.
 
-        driver.close()
+           :param driver: Selenium driver object
+           :type driver: selenium.webdriver.chrome.webdriver.WebDriver
+           :return: Verification code
+           :rtype: str
 
-        return verifier
+        """
+        try:
+            verifier_element = driver.find_element(By.XPATH, "//div[@style='text-align:center']/input[1]")
+            return verifier_element.get_attribute('value') if verifier_element else None
+        except InvalidSessionIdException:
+            pass
+        except NoSuchElementException:
+            self.handle_no_element_exception(driver)
+
+    def handle_no_element_exception(self, driver):
+        """:description: Handle case when a necessary element is not found.
+
+           :param driver: Selenium driver object
+           :type driver: selenium.webdriver.chrome.webdriver.WebDriver
+           :return: None
+           :rtype: None
+
+        """
+        driver.find_element(By.CSS_SELECTOR, "#sendOTPCodeBtn").click()
+        verifier = input("Check your mobile phone. Enter the verification code: ")
+        self.enter_verification_code(driver, verifier)
+        try:
+            accept = driver.find_element(By.NAME, "submit")
+            accept.click()
+        except NoSuchElementException:
+            pass
+
+    def enter_verification_code(self, driver, verifier):
+        """:description: Enters verification code for signing into E-Trade.
+
+           :param driver: Selenium driver object
+           :type driver: selenium.webdriver.chrome.webdriver.WebDriver
+           :param verifier: Verification code from E-Trade
+           :type verifier: str, required
+           :return: None
+           :rtype: None
+
+        """
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#verificationCode"))).send_keys(verifier)
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "fieldset > div:nth-child(1) > label"))).click()
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#application > div > div.row > div > div:nth-child(3) > "
+                                                             "div:nth-child(4) > button"))).click()
 
     def get_access_token(self, verifier):
         """:description: Obtains access token. Requires token URL from :class:`get_request_token`
@@ -153,7 +221,6 @@ class ETradeOAuth(object):
            :EtradeRef: https://apisb.etrade.com/docs/api/authorization/get_access_token.html
 
         """
-
         # Set verifier
         self.session._client.client.verifier = verifier
         # Get access token
@@ -179,16 +246,14 @@ class ETradeAccessManager(object):
     """
 
     def __init__(
-        self, client_key, client_secret, resource_owner_key, resource_owner_secret
+            self, client_key, client_secret, resource_owner_key, resource_owner_secret
     ):
         self.client_key = client_key
         self.client_secret = client_secret
         self.resource_owner_key = resource_owner_key
         self.resource_owner_secret = resource_owner_secret
         self.renew_access_token_url = r"https://api.etrade.com/oauth/renew_access_token"
-        self.revoke_access_token_url = (
-            r"https://api.etrade.com/oauth/revoke_access_token"
-        )
+        self.revoke_access_token_url = (r"https://api.etrade.com/oauth/revoke_access_token")
         self.session = OAuth1Session(
             self.client_key,
             self.client_secret,
