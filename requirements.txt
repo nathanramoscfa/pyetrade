@@ -4,3 +4,4 @@ requests_oauthlib
 xmltodict
 jxmlease
 selenium
+webdriver-manager
