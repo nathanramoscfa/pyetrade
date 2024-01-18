@@ -18,10 +18,10 @@ LOGGER = logging.getLogger(__name__)
 class ETradeOAuth(object):
     """:description: Performs authorization for OAuth 1.0a
 
-       :param client_key: Client key provided by Etrade
-       :type client_key: str, required
-       :param client_secret: Client secret provided by Etrade
-       :type client_secret: str, required
+       :param consumer_key: Client key provided by Etrade
+       :type consumer_key: str, required
+       :param consumer_secret: Client secret provided by Etrade
+       :type consumer_secret: str, required
        :param web_username: Client web username for Etrade
        :type web_username: str, required
        :param web_password: Client web password for Etrade
@@ -55,7 +55,6 @@ class ETradeOAuth(object):
     def get_request_token(self):
         """:description: Obtains the token URL from Etrade.
 
-           :param None: Takes no parameters
            :return: Formatted Authorization URL (Access this to obtain taken)
            :rtype: str
            :EtradeRef: https://apisb.etrade.com/docs/api/authorization/request_token.html
@@ -87,11 +86,9 @@ class ETradeOAuth(object):
 
         return formated_auth_url
 
-    def get_verification_code(self, dev, headless=False):
-        """:description: Obtains verification code for signing into E-Trade.
+    def get_verification_code(self, headless=False):
+        """:description: Obtains verification code for signing in to E-Trade.
 
-           :param dev: Option to use development API, defaults to False
-           :type dev: bool, optional
            :param headless: Option to run browser in headless mode, defaults to False
            :type headless: bool, optional
            :return: Verification code (Used for two-factor authentication)
@@ -106,9 +103,10 @@ class ETradeOAuth(object):
         self.login_to_site(driver)
 
         verifier = self.get_verifier(driver)
-        return verifier.get_attribute('value')
+        return verifier
 
-    def initialize_driver(self, headless):
+    @staticmethod
+    def initialize_driver(headless):
         """:description: Initialize the web driver with specified options.
 
            :param headless: Option to run browser in headless mode, defaults to False
@@ -127,7 +125,7 @@ class ETradeOAuth(object):
         try:
             return webdriver.Chrome(ChromeDriverManager().install(), options=options)
         except SessionNotCreatedException as e:
-            required_version = re.search(r"only supports Chrome version ([\d\.]+)", str(e)).group(1)
+            required_version = re.search(r"only supports Chrome version ([\d.]+)", str(e)).group(1)
             print(
                 f"SessionNotCreatedException occurred. Attempting to download ChromeDriver for version {required_version}.")
             return webdriver.Chrome(ChromeDriverManager(driver_version=required_version).install(), options=options)
@@ -192,8 +190,9 @@ class ETradeOAuth(object):
         except NoSuchElementException:
             pass
 
-    def enter_verification_code(self, driver, verifier):
-        """:description: Enters verification code for signing into E-Trade.
+    @staticmethod
+    def enter_verification_code(driver, verifier):
+        """:description: Enters verification code for signing in to E-Trade.
 
            :param driver: Selenium driver object
            :type driver: selenium.webdriver.chrome.webdriver.WebDriver
@@ -253,7 +252,7 @@ class ETradeAccessManager(object):
         self.resource_owner_key = resource_owner_key
         self.resource_owner_secret = resource_owner_secret
         self.renew_access_token_url = r"https://api.etrade.com/oauth/renew_access_token"
-        self.revoke_access_token_url = (r"https://api.etrade.com/oauth/revoke_access_token")
+        self.revoke_access_token_url = r"https://api.etrade.com/oauth/revoke_access_token"
         self.session = OAuth1Session(
             self.client_key,
             self.client_secret,
@@ -265,7 +264,6 @@ class ETradeAccessManager(object):
     def renew_access_token(self):
         """:description: Renews access tokens obtained from :class:`ETradeOAuth`
 
-           :param None: Takes no parameters
            :return: Success or failure
            :rtype: bool (True or False)
            :EtradeRef: https://apisb.etrade.com/docs/api/authorization/renew_access_token.html
@@ -280,7 +278,6 @@ class ETradeAccessManager(object):
     def revoke_access_token(self):
         """:description: Revokes access tokens obtained from :class:`ETradeOAuth`
 
-           :param None: Takes no parameters
            :return: Success or failure
            :rtype: bool (True or False)
            :EtradeRef: https://apisb.etrade.com/docs/api/authorization/revoke_access_token.html
